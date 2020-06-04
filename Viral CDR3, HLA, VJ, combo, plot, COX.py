@@ -96,7 +96,7 @@ clinicalcox = clinicalcox.replace("female", 0)
 Caseclinicalcox = clinicalcox['Case']
 clinicalcox = clinicalcox.apply(pd.to_numeric, errors='coerce')
 clinicalcox['Case'] = Caseclinicalcox
-clinicalcox = clinicalcox.dropna()
+#clinicalcox = clinicalcox.dropna() #This drops people entirely who don't have something labelled
 Usedclinicalcox = clinicalcox.drop(columns = ['Case'])
 """
 cox = CoxPHFitter()
@@ -118,11 +118,13 @@ HLAdrop = HLAdrop.drop(columns = ['Filename']) #To avoid reference + HLAdrop hav
 referenceHLA = reference.merge(HLAdrop,on='Case', how = 'right') #Reference file because each person has multiple files. Make sure that each filename has a specific HLA. (Filename --> Case --> HLA)
 
 #Takes TRB, cleans Filename,VID,JID
-TRB = pd.read_csv(path + "TRBfm.csv")
+TRB = pd.read_csv(path + "TRAfm.csv")
 TRBVJ = TRB[['Filename','VID','JID','CDR3']].copy()
 TRBVJ['Filename'] = TRBVJ['Filename'].str.split("_", expand=False).str[1] #e.g. sliced_eb72c238-3349-4b49-9483-503ac9c49144_wxs_gdc_realn.bam.tsv
 TRBVJ['VID'] = TRBVJ['VID'].str.split("|", expand=False).str[1] #L05149|TRBV20/OR9-2*01|Homo --> TRBV20/OR9-2*01
+TRBVJ['VID'] = TRBVJ['VID'].str.split("*", expand=False).str[0] #TRBV2-7*01 --> TRBV2-7 - takes off allele
 TRBVJ['JID'] = TRBVJ['JID'].str.split("|", expand=False).str[1] #M14159|TRBJ2-7*01|Homo --> TRBJ2-7*01
+TRBVJ['JID'] = TRBVJ['JID'].str.split("*", expand=False).str[0] #TRBJ2-7*01 --> TRBJ2-7 - takes off allele
 
 #
 referencedrop = reference.drop_duplicates(subset = 'Filename', keep = 'first', inplace = False) #Just in case there are multiple filenames? 
@@ -141,7 +143,7 @@ TRBHLAVJ = TRBHLAVJ[TRBHLAVJ['VID'].notna()]
 print("Preparation 1 Done")
 
 #Viral CDR3
-Viralcdr3 = pd.read_csv("/Users/thuda/Desktop/Research/4-MMRF/VDJ/8-ViralCDR3/ViralCDR3TRB.csv")
+Viralcdr3 = pd.read_csv("/Users/thuda/Desktop/Research/4-MMRF/VDJ/8-ViralCDR3/ViralCDR3TRA.csv")
 Viruses = Viralcdr3['Epitope species'].drop_duplicates(keep = 'first', inplace = False)
 Viruses = Viruses.reset_index(drop=True)
 Usedv = pd.DataFrame()
@@ -200,10 +202,10 @@ for index, item in Viruses.items():
         Rp = pd.DataFrame(Rdatap, columns=['Combination','Log-rank Test p-value', 'Sample Size', 'Complement Sample Size'])
         psviral = psviral.append(p,ignore_index=True)
         psviral = psviral.append(Rp, ignore_index=True)
-        #Casesdropsurv.to_csv(path + save + "-casessurv.csv", index=False)
-        #CompCasesdropsurv.to_csv(path + save + "-compcasessurv.csv", index=False)
+        Casesdropsurv.to_csv(path + save + "-casessurv.csv", index=False)
+        CompCasesdropsurv.to_csv(path + save + "-compcasessurv.csv", index=False)
         KMFit = KMF(Casesdropsurv, CompCasesdropsurv, item, save)
-        KMFit.KMFplot()
+        #KMFit.KMFplot()
     """
     if results.p_value < .05 and len(Casesdrop.index) > 20: #20 is an arbitrary limit
         Casesdropsurvcox = Casesdrop.merge(clinicalcox,on='Case', how='left')
@@ -226,7 +228,7 @@ for index, item in Viruses.items():
             OS_cox_bcoef_stage.append(OS_cox.iloc[2][1])
         except:
             print(traceback.format_exc())"""
-            
+sys.exit()            
 print(allpsviral[:])
 #allpsviral.to_csv(path + "psviral.csv")
 print(psviral[:])
@@ -485,8 +487,8 @@ for index, row in ChecklistVJ.iterrows():
     #print("P-value of " + item) #if you want all p-values
     #print(results.p_value) #if you want all p-values    
     if results.p_value < .05:
-        #Casesdropsurv.to_csv(path + save + "-surv.csv", index=False)
-        #CompCasesdropsurv.to_csv(path + save + "-Compsurv.csv", index=False) 
+        Casesdropsurv.to_csv(path + save + "-surv.csv", index=False)
+        CompCasesdropsurv.to_csv(path + save + "-Compsurv.csv", index=False) 
         #results.print_summary()
         Rresults = logrank_test(RCasesdropsurv['Days to Last Known Disease Status'], RCompCasesdropsurv['Days to Last Known Disease Status'], RCasesdropsurv['Death'], RCompCasesdropsurv['Death'])  
         Rdatap = [[item + "-Rep", Rresults.p_value, RCasesdropsurv.shape[0], RCompCasesdropsurv.shape[0]]]
@@ -553,8 +555,8 @@ for index, row in ChecklistHLAVJ.iterrows():
     #print(results.p_value) #if you want all p-values    
     if results.p_value < .05:
         #results.print_summary()
-        #Casesdropsurv.to_csv(path + save + "-surv.csv", index=False)
-        #CompCasesdropsurv.to_csv(path + save + "-Compsurv.csv", index=False) 
+        Casesdropsurv.to_csv(path + save + "-surv.csv", index=False)
+        CompCasesdropsurv.to_csv(path + save + "-Compsurv.csv", index=False) 
         datap = [[item, results.p_value, Casesdrop.shape[0], CompCasesdrop.shape[0]]]
         Rresults = logrank_test(RCasesdropsurv['Days to Last Known Disease Status'], RCompCasesdropsurv['Days to Last Known Disease Status'], RCasesdropsurv['Death'], RCompCasesdropsurv['Death'])
         Rdatap = [[item + "-Rep", Rresults.p_value, RCasesdrop.shape[0], RCompCasesdrop.shape[0]]]
@@ -596,7 +598,7 @@ psHLAVJ.to_csv(path + "pscombo,arms.csv")
 pscox = ps[~ps['Combination'].str.contains("-Rep")]
 pscox = pscox['Combination']
 HLAdropcox = HLAdrop.merge(clinicalcox,on='Case', how = 'left')
-TRBHLAVJcox = TRBHLAVJ.merge(clinicalcox, on = 'Case', how = 'left')
+allcaseOriginHLAdropcox = allcaseOriginHLAdrop.merge(clinicalcox, on = 'Case', how = 'left')
 coxsummary = pd.DataFrame()
 OS_cox_p_age = []
 OS_cox_bcoef_age = []
@@ -604,6 +606,8 @@ OS_cox_p_gender = []
 OS_cox_bcoef_gender = []
 OS_cox_p_stage = []
 OS_cox_bcoef_stage = []
+OS_cox_p_item = []
+OS_cox_bcoef_item = []
 for index, item in pscox.items():
     print(item)
     HLAtype = item.split('*')[0]
@@ -630,21 +634,28 @@ for index, item in pscox.items():
     if HLAonly is True:
         Used = HLAdropcox
     else:
-        Used = TRBHLAVJcox
-    is_c1 = Used[column1]==item
-    if VJonly is True:
-        is_c2 = False
-    is_c2 = Used[column2]==item
-    Cases = Used[is_c1|is_c2] # is item found in Column 1 or 2 (TRB-J/HLA-A or TRB-J/HLA-A')
-    Casesdrop = Cases.drop_duplicates(subset = "Case", keep = 'first', inplace = False)
-    Casesdrop = Casesdrop[['Case','Age','Gender','Stage','Days to Last Known Disease Status', 'Death']].copy()
+        Used = TRBHLAVJ
+    Cases = Used.copy() #THIS IS DIFFERENT FROM other Cases variables in that this doesn't filter - this just labels
+    Cases[item + "A"] = [1 if ele  == item else 0 for ele in Cases[column1]]
+    if VJonly is False:
+            Cases[item + "B"] = [1 if ele  == item else 0 for ele in Cases[column2]]
+            Cases[item + "AB"] = Cases[item + "A"] + Cases[item + "B"]
+            Cases[item + "A"] = Cases[item + "AB"]
+    Cases[item] = [1 if ele >= 1 else 0 for ele in Cases[item + "A"]] #basically, if it's in one column it'll have 1, another column another 1, then sum - if total wasn't 0, it was seen somewhere  
+    Cases = Cases.sort_values(by=item,ascending=False)
+    Casesdrop = Cases.drop_duplicates(subset = 'Case', keep = 'first', inplace = False)
+    if HLAonly is False: #make sure entire set is considered as PB-Whole
+        CasesBinary = Casesdrop[['Case',item]].copy()
+        Casesdrop = allcaseOriginHLAdropcox.merge((CasesBinary),on = 'Case', how = 'left')
+        Casesdrop[item] = Casesdrop[item].fillna(0)
     save = item.translate(str.maketrans('', '', '*:\'\/'))
-    #Casesdrop.to_csv(path + save + "-COX.csv") you probably will want to keep clinicalcox from droppingna, put in 'Case' column 2 lines above this one 
-    Casesdrop = Casesdrop.dropna() #Drops people who were missing a value of the above - potentially can bias people who don't have stages for their cancer bc they died
+    #Casesdrop.to_csv(path + save + "-COX.csv") #you probably will want to keep clinicalcox from droppingna, put in 'Case' column 2 lines above this one 
+    Casesdrop = Casesdrop[['Age','Gender','Stage',item, 'Days to Last Known Disease Status', 'Death']].copy()
+    Casesdrop = Casesdrop.dropna() #Drops people who were missing a value of the above - potentially can bias people who don't have stages for their cancer bc they died; doesn't work otherwise
     cox = CoxPHFitter()
     try:
         cox.fit(Casesdrop,duration_col='Days to Last Known Disease Status',event_col='Death')
-        cox.print_summary(3,"ascii")
+        cox.print_summary(3,"ascii") #number is number of decimal places to show
         OS_cox = cox.summary
         #print(OS_cox.head())
         #OS_cox.to_csv(path + "OS.csv")
@@ -654,6 +665,8 @@ for index, item in pscox.items():
         OS_cox_bcoef_gender.append(OS_cox.iloc[1][1])
         OS_cox_p_stage.append(OS_cox.iloc[2][8])
         OS_cox_bcoef_stage.append(OS_cox.iloc[2][1])
+        OS_cox_p_item.append(OS_cox.iloc[3][8])
+        OS_cox_bcoef_item.append(OS_cox.iloc[3][1])
     except:
         print(traceback.format_exc())
 coxsummary["Combination"] = pscox
@@ -663,4 +676,6 @@ coxsummary["OS_cox_p_gender"] = OS_cox_p_gender
 coxsummary["OS_cox_bcoef_gender"] = OS_cox_bcoef_gender
 coxsummary["OS_cox_p_stage"] = OS_cox_p_stage
 coxsummary["OS_cox_bcoef_stage"] = OS_cox_bcoef_stage
-#coxsummary.to_csv(path + "coxsummary.csv")
+coxsummary["OS_cox_p_item"] = OS_cox_p_item
+coxsummary["OS_cox_bcoef_item"] = OS_cox_bcoef_item
+#coxsummary.to_csv(path + "coxsummary.csv") #NOTE - DON'T USE HAZARD RATIO FROM HERE; BECAUSE OF "dropna()", people without a variable may be dropped from KM, hazard ratio calculation
