@@ -228,7 +228,7 @@ for index, item in Viruses.items():
             OS_cox_bcoef_stage.append(OS_cox.iloc[2][1])
         except:
             print(traceback.format_exc())"""
-sys.exit()            
+           
 print(allpsviral[:])
 #allpsviral.to_csv(path + "psviral.csv")
 print(psviral[:])
